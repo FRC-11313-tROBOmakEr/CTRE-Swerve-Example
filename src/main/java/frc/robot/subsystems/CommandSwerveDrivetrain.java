@@ -11,6 +11,11 @@ import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.config.PIDConstants;
+import com.pathplanner.lib.config.RobotConfig;
+import com.pathplanner.lib.controllers.PPHolonomicDriveController;
+
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -49,6 +54,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     private final SwerveRequest.SysIdSwerveTranslation m_translationCharacterization = new SwerveRequest.SysIdSwerveTranslation();
     private final SwerveRequest.SysIdSwerveSteerGains m_steerCharacterization = new SwerveRequest.SysIdSwerveSteerGains();
     private final SwerveRequest.SysIdSwerveRotation m_rotationCharacterization = new SwerveRequest.SysIdSwerveRotation();
+
+    private final SwerveRequest.ApplyRobotSpeeds speedsApplier = new SwerveRequest.ApplyRobotSpeeds();
 
     /* SysId routine for characterizing translation. This is used to find PID gains for the drive motors. */
     private final SysIdRoutine m_sysIdRoutineTranslation = new SysIdRoutine(
@@ -130,6 +137,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         if (Utils.isSimulation()) {
             startSimThread();
         }
+        configurePPAuto();
     }
 
     /**
@@ -154,6 +162,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         if (Utils.isSimulation()) {
             startSimThread();
         }
+        configurePPAuto();
     }
 
     /**
@@ -185,6 +194,31 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         super(drivetrainConstants, odometryUpdateFrequency, odometryStandardDeviation, visionStandardDeviation, modules);
         if (Utils.isSimulation()) {
             startSimThread();
+        }
+        configurePPAuto();
+    }
+
+    private void configurePPAuto() {
+        try {
+            AutoBuilder.configure(
+                () -> getState().Pose, 
+                (pose) -> resetPose(pose), 
+                () -> getState().Speeds, 
+                (speeds, feedForwards) -> setControl(
+                    speedsApplier.withSpeeds(speeds)
+                    .withWheelForceFeedforwardsX(feedForwards.robotRelativeForcesX())
+                    .withWheelForceFeedforwardsY(feedForwards.robotRelativeForcesY())
+                ), 
+                new PPHolonomicDriveController(
+                    new PIDConstants(0, 0, 0), 
+                    new PIDConstants(0, 0, 0)
+                ), 
+                RobotConfig.fromGUISettings(), 
+                () -> DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red, 
+                this
+            );
+        } catch (Exception error) {
+            DriverStation.reportError("Error occured when configuring AutoBuilder: ", error.getStackTrace());
         }
     }
 
