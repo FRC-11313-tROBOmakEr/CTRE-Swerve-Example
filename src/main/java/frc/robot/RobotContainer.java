@@ -40,11 +40,14 @@ public class RobotContainer {
 
     public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
 
+    // Creates a Chooser with PP Autos
     private final SendableChooser<Command> ppChooser = AutoBuilder.buildAutoChooser();
 
     public RobotContainer() {
-        SmartDashboard.putData("Auto Chooser", ppChooser);
+        // An example of registering commands
         NamedCommands.registerCommand("Test", new PrintCommand("Testing NamedCommand"));
+        // Puts the Chooser to SmartDashboard
+        SmartDashboard.putData("Auto Chooser", ppChooser);
 
         configureBindings();
     }
@@ -83,6 +86,7 @@ public class RobotContainer {
     }
 
     public Command getAutonomousCommand() {
+        // Run selected auto
         return ppChooser.getSelected();
     }
 }
