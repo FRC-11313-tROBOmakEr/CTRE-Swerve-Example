@@ -29,6 +29,8 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 
+import frc.robot.LimelightHelpers;
+import frc.robot.Constants;
 import frc.robot.generated.TunerConstants.TunerSwerveDrivetrain;
 
 /**
@@ -56,6 +58,9 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     private final SwerveRequest.SysIdSwerveRotation m_rotationCharacterization = new SwerveRequest.SysIdSwerveRotation();
 
     private final SwerveRequest.ApplyRobotSpeeds speedsApplier = new SwerveRequest.ApplyRobotSpeeds();
+
+    private boolean doRejectUpdate, badTagData;
+    private LimelightHelpers.PoseEstimate mt2;
 
     /* SysId routine for characterizing translation. This is used to find PID gains for the drive motors. */
     private final SysIdRoutine m_sysIdRoutineTranslation = new SysIdRoutine(
@@ -256,6 +261,31 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     @Override
     public void periodic() {
+        LimelightHelpers.SetRobotOrientation(Constants.VisionConstants.LL_NAME, getPigeon2().getYaw().getValueAsDouble(), 0, 0, 0, 0, 0);
+
+        doRejectUpdate = false;
+        badTagData = false;
+
+        if (LimelightHelpers.getFiducialID(Constants.VisionConstants.LL_NAME) != -1) {
+            mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(Constants.VisionConstants.LL_NAME);
+        }
+        else {
+            badTagData = true;
+        }
+
+        //Pose Estimator
+        if (!badTagData) {
+            if (Math.abs(getPigeon2().getAngularVelocityZWorld().getValueAsDouble()) > 720){
+                doRejectUpdate = true;
+            }
+            if (mt2.tagCount == 0){
+                doRejectUpdate = true;
+            }
+            if (!doRejectUpdate){
+                addVisionMeasurement(mt2.pose, mt2.timestampSeconds);
+            }
+        }
+
         /*
          * Periodically try to apply the operator perspective.
          * If we haven't applied the operator perspective before, then we should apply it regardless of DS state.

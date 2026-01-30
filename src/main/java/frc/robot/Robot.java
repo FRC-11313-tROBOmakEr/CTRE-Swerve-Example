@@ -10,6 +10,10 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 
+import frc.robot.Constants;
+import frc.robot.LimelightHelpers;
+
+
 public class Robot extends TimedRobot {
     private Command m_autonomousCommand;
 
@@ -31,13 +35,19 @@ public class Robot extends TimedRobot {
     }
 
     @Override
-    public void disabledInit() {}
+    public void disabledInit() {
+        // Use external Gyro to "seed" internal IMU
+        LimelightHelpers.SetIMUMode(Constants.VisionConstants.LL_NAME, 1);
+    }
 
     @Override
     public void disabledPeriodic() {}
 
     @Override
-    public void disabledExit() {}
+    public void disabledExit() {
+        // Switch to internal IMU + MT1
+        LimelightHelpers.SetIMUMode(Constants.VisionConstants.LL_NAME, 3);
+    }
 
     @Override
     public void autonomousInit() {
